@@ -6,12 +6,19 @@
 #include <vector>
 #include <string>
 
+int counter = 0;
+int pointer_counter = 0;
+
 class GameActor {
 public:
     std::string name;
 
-    GameActor() : name("Default Actor") {}
-    explicit GameActor (std::string name) : name(std::move(name)) {}
+    GameActor() : name("Default Actor") {
+        counter++;
+    }
+    explicit GameActor (std::string name) : name(std::move(name)) {
+        counter++;
+    }
     void draw() const {
         std::cout << name << std::endl;
     }
@@ -19,21 +26,37 @@ public:
 
 std::vector<GameActor*> actors;
 
-
 GameActor* duplicateGameActor(const size_t index) {
-    return index < actors.size() && actors[index] != nullptr ? new GameActor(*actors[index]) : new GameActor();
+    GameActor* pointer = nullptr;
+    if (index < actors.size() && actors[index] != nullptr) {
+        pointer = new GameActor(*actors[index]);
+        pointer_counter++;
+        return pointer;
+    } else {
+        return new GameActor();
+    }
 }
 
 GameActor* duplicateGameActor(GameActor* ptr) {
-    return ptr != nullptr ? new GameActor(*ptr) : new GameActor();
+    GameActor* pointer = nullptr;
+    if (ptr != nullptr) {
+        pointer = new GameActor(*ptr);
+        pointer_counter++;
+        return pointer;
+    } else {
+        return new GameActor();
+    }
 }
 
 void clean() {
-    for (GameActor* actor : actors) {
+    int delete_counter = 0;
+    for (GameActor*& actor : actors) {
         delete actor;
         actor = nullptr;
+        delete_counter++;
     }
     actors.clear();
+    std::cout << "Deleted " << delete_counter << " actors" << std::endl;
 }
 
 int main() {
@@ -43,8 +66,8 @@ int main() {
     actors.push_back(new GameActor("Actor_3"));
     actors.push_back(new GameActor());
 
-    actors.emplace_back(duplicateGameActor(nullptr));
-    actors.emplace_back(duplicateGameActor(2));
+    actors.emplace_back(duplicateGameActor(static_cast<GameActor*>(nullptr)));
+    actors.emplace_back(duplicateGameActor(static_cast<int>(2)));
 
     actors.emplace_back(duplicateGameActor(static_cast<GameActor*>(actors[1])));
     actors.emplace_back(duplicateGameActor(static_cast<GameActor*>(nullptr)));
@@ -52,6 +75,7 @@ int main() {
     for (const auto &actor : actors) {
         actor->draw();
     }
+    std::cout << "Created + Pointed: " << counter + pointer_counter << std::endl;
 
     clean();
 
