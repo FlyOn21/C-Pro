@@ -14,4 +14,4 @@ struct Rectangle {
     }
 };
 
-#endif //C_PRO_RECTANGLE_H
+#endif
