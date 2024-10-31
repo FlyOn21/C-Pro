@@ -13,4 +13,5 @@ cd "$BUILD_DIR"
 
 cmake ..
 cmake --build .
-./HelloWorld
+./GameActor
+

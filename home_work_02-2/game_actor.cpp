@@ -53,9 +53,11 @@ GameActor *duplicateGameActor(GameActor *ptr) {
 void clean() {
     int delete_counter = 0;
     for (GameActor *&actor: actors) {
-        delete actor;
-        actor = nullptr;
-        delete_counter++;
+        if (actor != nullptr) {
+            delete actor;
+            actor = nullptr;
+            delete_counter++;
+        }
     }
     actors.clear();
     std::cout << "Deleted " << delete_counter << " actors" << std::endl;
