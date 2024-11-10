@@ -12,6 +12,7 @@
 #include <mutex>
 #include <iomanip>
 #include <vector>
+#include <mutex>
 
 
 class Logger {
@@ -26,18 +27,20 @@ public:
     }
 
     void log(const std::string &message, LogLevel level = INFO) {
+        std::lock_guard<std::mutex> lock(mutex_);
         std::ofstream logFile("log.txt", std::ios::app);
-        std::vector<std::string> coloredLogLevel = getColoredLogLevelString(level);
+        ColorCode coloredLogLevel = getColorCode(level);
+
         if (logFile.is_open()) {
             logFile << "[" << getLogLevelString(level) << "] "
                     << getCurrentTime() << " - " << message << std::endl;
             logFile.close();
         } else {
-            std::vector<std::string> coloredLogLevelError = getColoredLogLevelString(ERROR);
-            std::cerr << coloredLogLevelError[0] << "Error opening log file!" << coloredLogLevelError[1] << std::endl;
+            ColorCode coloredLogLevelError = getColorCode(ERROR);
+            std::cerr << coloredLogLevelError.start << "Error opening log file!" << coloredLogLevelError.end << std::endl;
         }
-        std::cout << coloredLogLevel[0] << "[" << getLogLevelString(level) << "] "
-                  << getCurrentTime() << " - " << message << coloredLogLevel[1] << std::endl;
+        std::cout << coloredLogLevel.start << "[" << getLogLevelString(level) << "] "
+                  << getCurrentTime() << " - " << message << coloredLogLevel.end << std::endl;
     }
 
 
@@ -71,11 +74,13 @@ private:
 
     ~Logger() = default;
 
+    std::mutex mutex_;
 
     static std::string getCurrentTime() {
         auto now = std::chrono::system_clock::now();
         std::time_t time_now = std::chrono::system_clock::to_time_t(now);
-        std::tm *local_time = std::localtime(&time_now);
+        std::tm local_time_buf{};
+        std::tm* local_time = localtime_r(&time_now, &local_time_buf);
         std::ostringstream oss;
         oss << std::put_time(local_time, "%Y-%m-%d %H:%M:%S");
         return oss.str();
@@ -94,16 +99,17 @@ private:
         }
     }
 
-    static std::vector<std::string> getColoredLogLevelString(LogLevel level) {
+    struct ColorCode {
+        const char* start;
+        const char* end;
+    };
+
+    static ColorCode getColorCode(LogLevel level) {
         switch (level) {
-            case INFO:
-                return {"\033[1;34m", "\033[0m"};
-            case WARNING:
-                return {"\033[1;33m", "\033[0m"};
-            case ERROR:
-                return {"\033[1;31m", "\033[0m"};
-            default:
-                return {"", ""};
+            case INFO:    return {"\033[1;34m", "\033[0m"};
+            case WARNING: return {"\033[1;33m", "\033[0m"};
+            case ERROR:   return {"\033[1;31m", "\033[0m"};
+            default:      return {"", ""};
         }
     }
 };
