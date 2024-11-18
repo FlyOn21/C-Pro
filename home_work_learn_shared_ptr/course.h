@@ -7,22 +7,21 @@
 
 #include <cstring>
 #include <list>
+#include <memory>
 #include "students.h"
 
 class Course {
 public:
-
-    Course(const char* courseName) {
+    explicit Course(const char* courseName) {
         static int c_id = 0;
         this->course_id = ++c_id;
         std::strncpy(this->courseName, courseName, sizeof(this->courseName) - 1);
         this->courseName[sizeof(this->courseName) - 1] = '\0';
     }
-
-    void add_student(Student* student) {
+    void add_student(const std::shared_ptr<Student>& student) {
         students.push_back(student);
     }
-    void remove_student(Student* student) {
+    void remove_student(const std::shared_ptr<Student>& student) {
         students.remove(student);
     }
     int get_id() const {
@@ -31,16 +30,14 @@ public:
     const char* get_name() const {
         return courseName;
     }
-    const std::list<Student*>& get_students() const {
+    const std::list<std::shared_ptr<Student>>& get_students() const {
         return students;
     }
 
 private:
     int course_id;
     char courseName[256];
-    std::list<Student*> students;
+    std::list<std::shared_ptr<Student>> students;
 };
 
-
-
-#endif //C_PRO_COURSE_H_course
+#endif // C_PRO_COURSE_H_course

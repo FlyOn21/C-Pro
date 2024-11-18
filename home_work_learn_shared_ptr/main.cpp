@@ -38,13 +38,13 @@ int main() {
     courses.push_back(math);
 
     for (auto& student : students) {
-        math->add_student(student.get());
+        math->add_student(student);
     }
 
     print_courses(courses);
 
-    math->remove_student(students[0].get());
-    math->remove_student(students[1].get());
+    math->remove_student(students[0]);
+    math->remove_student(students[1]);
 
     print_courses(courses);
 
