@@ -18,6 +18,9 @@ private:
     std::string course_name;
     std::list<std::weak_ptr<Student>> students;
 
+
+
+
 public:
     explicit Course(const std::string& name);
 
@@ -25,8 +28,14 @@ public:
 
     std::string getName() const;
 
-    void showStudents() const;
+    void showStudents() ;
 
     ~Course();
+
+    void cleanup_expired() {
+        students.remove_if([](const std::weak_ptr<Student>& wp) {
+            return wp.expired();
+        });
+    };
 };
 #endif //C_PRO_COURSE_H_course

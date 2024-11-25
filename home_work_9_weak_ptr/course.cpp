@@ -23,7 +23,8 @@ std::string Course::getName() const {
     return course_name;
 }
 
-void Course::showStudents() const {
+void Course::showStudents() {
+    cleanup_expired();
     std::cout << "Course: " << course_name << " has the following students:\n";
     if (students.empty()) {
         std::cout << "  - No students\n";

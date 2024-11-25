@@ -14,12 +14,11 @@ std::shared_ptr<Student> Student::create(const std::string& name) {
 
 void Student::addInCourse(const std::shared_ptr<Course>& course) {
     auto it = std::find(courses.begin(), courses.end(), course);
-    if (it == courses.end()) {
+    if (it != courses.end()) {
+        std::cout << "Student " << student_name << " is already added in the course " << course->getName() << ".\n";
+    } else {
         courses.push_back(course);
         course->addStudent(shared_from_this());
-    }
-    else if (!courses.empty() && it != courses.end()) {
-        std::cout << "Student " << student_name << " is already added in the course " << course->getName() << ".\n";
     }
 }
 
