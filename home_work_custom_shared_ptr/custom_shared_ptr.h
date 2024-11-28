@@ -88,6 +88,16 @@ public:
     int use_count() const {
         return ptrCounter ? ptrCounter->load() : 0;
     }
+
+    bool operator==(const CustomSharedPtr<T>& other) const {
+        return ptrData == other.ptrData;
+    }
+
+    struct Hash {
+        size_t operator()(const CustomSharedPtr<T>& ptr) const {
+            return std::hash<T*>()(ptr.ptrData);
+        }
+    };
 };
 
 #endif //C_PRO_CUSTOM_SHARED_PTR_H_custom_shared_ptr
