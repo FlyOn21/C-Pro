@@ -2,8 +2,8 @@
 // Created by flyon21 on 07.12.24.
 //
 
-#ifndef C_PRO_CONVERTER_H
-#define C_PRO_CONVERTER_H
+#ifndef C_PRO_CONVERTER_H_converter
+#define C_PRO_CONVERTER_H_converter
 
 #include <iostream>
 #include <string>
@@ -36,4 +36,4 @@ double convert(double value, const std::string& from, const std::string& to) {
     }
 }
 
-#endif //C_PRO_CONVERTER_H
+#endif //C_PRO_CONVERTER_H_converter
