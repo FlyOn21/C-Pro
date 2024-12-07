@@ -18,9 +18,26 @@ struct TreeSymbols {
     const std::string empty = "    ";
 };
 
+struct FileStats {
+    size_t count = 0;
+    uintmax_t totalSize = 0;
+
+    void add(uintmax_t size) {
+        count++;
+        totalSize += size;
+    }
+};
+
+struct FileAnalysis {
+    FileStats text;
+    FileStats images;
+    FileStats executables;
+    FileStats others;
+};
+
 class FileSystemViewer {
 public:
-    explicit FileSystemViewer(const std::string &path) : path(path) {
+    explicit FileSystemViewer(const std::string &path) : path(fs::canonical(path)) {
         if (!fs::exists(path)) {
             throw std::invalid_argument("Path does not exist");
         }
@@ -41,12 +58,9 @@ public:
                     while (stack.size() > it.depth()) {
                         stack.pop_back();
                     }
-
-
                     if (!stack.empty()) {
                         prefix = stack.back();
                     }
-
                     std::cout << prefix
                               <<  symbols.branch
                               << entry.path().filename().generic_string();
@@ -68,7 +82,7 @@ public:
                     }
 
                 } catch (const fs::filesystem_error &) {
-                    std::string prefix = stack.empty() ? "" : stack.back();
+                    prefix = stack.empty() ? "" : stack.back();
                     std::cerr << prefix
                               << symbols.branch
                               << it->path().filename().string()
@@ -82,53 +96,21 @@ public:
 
 
     void analyzeFiles() {
-        size_t txtCount = 0;
-        size_t imageCount = 0;
-        size_t exeCount = 0;
-        size_t otherCount = 0;
-
-        uintmax_t txtSize = 0;
-        uintmax_t imageSize = 0;
-        uintmax_t exeSize = 0;
-        uintmax_t otherSize = 0;
 
         try {
-            for (fs::recursive_directory_iterator it(path, fs::directory_options::skip_permission_denied), end;
-                 it != end; ++it) {
+            for (const auto& entry : fs::recursive_directory_iterator(path, fs::directory_options::skip_permission_denied)) {
+                if (!fs::is_regular_file(entry)) continue;
+
                 try {
-                    const auto &entry = *it;
-
-                    if (fs::is_regular_file(entry)) {
-                        auto ext = entry.path().extension().string();
-                        uintmax_t fileSize = fs::file_size(entry);
-
-                        if (ext == ".txt") {
-                            ++txtCount;
-                            txtSize += fileSize;
-                        } else if (ext == ".jpg" || ext == ".png" || ext == ".bmp") {
-                            ++imageCount;
-                            imageSize += fileSize;
-                        } else if (isExecutable(entry)) {
-                            ++exeCount;
-                            exeSize += fileSize;
-                        } else {
-                            ++otherCount;
-                            otherSize += fileSize;
-                        }
-                    }
-                } catch (const fs::filesystem_error &) {
+                    auto& stats = categorizeFile(entry);
+                    stats.add(fs::file_size(entry));
+                } catch (const fs::filesystem_error&) {
                     continue;
                 }
             }
 
-            std::cout << "\nAnalysis of directory: " << path << std::endl;
-            std::cout << "Text files (.txt): " << txtCount << " (" << formatSize(txtSize) << ")" << std::endl;
-            std::cout << "Image files (.jpg, .png, .bmp): " << imageCount << " (" << formatSize(imageSize) << ")"
-                      << std::endl;
-            std::cout << "Executable files: " << exeCount << " (" << formatSize(exeSize) << ")" << std::endl;
-            std::cout << "Other files: " << otherCount << " (" << formatSize(otherSize) << ")" << std::endl;
-
-        } catch (const fs::filesystem_error &e) {
+            printAnalysis();
+        } catch (const fs::filesystem_error& e) {
             std::cerr << "Error analyzing files: " << e.what() << std::endl;
         }
     }
@@ -139,6 +121,27 @@ private:
     std::string prefix;
     int lastDepth = -1;
     std::vector<std::string> stack;
+    FileAnalysis analysis;
+
+    FileStats& categorizeFile(const fs::directory_entry& entry) {
+        auto ext = entry.path().extension().string();
+        if (ext == ".txt") return analysis.text;
+        if (ext == ".jpg" || ext == ".png" || ext == ".bmp") return analysis.images;
+        if (isExecutable(entry)) return analysis.executables;
+        return analysis.others;
+    }
+
+    void printAnalysis() {
+        std::cout << "\nAnalysis of directory: " << path << std::endl
+                  << "Text files (.txt): " << analysis.text.count
+                  << " (" << formatSize(analysis.text.totalSize) << ")\n"
+                  << "Image files (.jpg, .png, .bmp): " << analysis.images.count
+                  << " (" << formatSize(analysis.images.totalSize) << ")\n"
+                  << "Executable files: " << analysis.executables.count
+                  << " (" << formatSize(analysis.executables.totalSize) << ")\n"
+                  << "Other files: " << analysis.others.count
+                  << " (" << formatSize(analysis.others.totalSize) << ")" << std::endl;
+    }
 
     bool isExecutable(const fs::directory_entry &entry) {
         #ifdef _WIN32

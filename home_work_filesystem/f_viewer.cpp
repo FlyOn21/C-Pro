@@ -15,6 +15,7 @@ int main() {
         std::cout << "Directory exists: " << path << std::endl;
     } else {
         std::cerr << "Invalid directory path or directory does not exist." << std::endl;
+        return 1;
     }
     FileSystemViewer viewer(path);
     viewer.show();
