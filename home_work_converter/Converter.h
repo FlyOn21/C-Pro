@@ -8,32 +8,73 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 enum class ConversionType { Length, Mass, Temperature };
 
 template <ConversionType Type>
-double convert(double value, const std::string& from, const std::string& to) {
+struct ConversionFactor {
+    const char* from;
+    const char* to;
+    double factor;
+    double (*convert)(double) = nullptr;
+};
+
+std::vector<std::string> getAbleUnits(ConversionType type) {
+    std::vector<std::string> units;
+    if (type == ConversionType::Length) {
+        units = {"m", "km", "cm"};
+    } else if (type == ConversionType::Mass) {
+        units = {"kg", "g", "lb"};
+    } else if (type == ConversionType::Temperature) {
+        units = {"C", "F", "K"};
+    }
+    return units;
+}
+
+
+template <ConversionType Type>
+const std::vector<ConversionFactor<Type>>& getConversionTable() {
     if constexpr (Type == ConversionType::Length) {
-        if (from == "m" && to == "km") return value / 1000.0;
-        else if (from == "km" && to == "m") return value * 1000.0;
-        else if (from == "cm" && to == "m") return value / 100.0;
-        else if (from == "m" && to == "cm") return value * 100.0;
-        else throw std::invalid_argument("Unsupported length conversion");
+        static const std::vector<ConversionFactor<Type>> table = {
+                {"m", "km", 1.0 / 1000.0},
+                {"km", "m", 1000.0},
+                {"cm", "m", 1.0 / 100.0},
+                {"m", "cm", 100.0}
+        };
+        return table;
     } else if constexpr (Type == ConversionType::Mass) {
-        if (from == "kg" && to == "g") return value * 1000.0;
-        else if (from == "g" && to == "kg") return value / 1000.0;
-        else if (from == "lb" && to == "kg") return value * 0.453592;
-        else if (from == "kg" && to == "lb") return value / 0.453592;
-        else throw std::invalid_argument("Unsupported mass conversion");
+        static const std::vector<ConversionFactor<Type>> table = {
+                {"kg", "g", 1000.0},
+                {"g", "kg", 1.0 / 1000.0},
+                {"lb", "kg", 0.453592},
+                {"kg", "lb", 1.0 / 0.453592}
+        };
+        return table;
     } else if constexpr (Type == ConversionType::Temperature) {
-        if (from == "C" && to == "F") return (value * 9.0 / 5.0) + 32.0;
-        else if (from == "F" && to == "C") return (value - 32.0) * 5.0 / 9.0;
-        else if (from == "C" && to == "K") return value + 273.15;
-        else if (from == "K" && to == "C") return value - 273.15;
-        else throw std::invalid_argument("Unsupported temperature conversion");
+        static const std::vector<ConversionFactor<Type>> table = {
+                {"C", "F", 1.0, [](double value) { return (value * 9.0 / 5.0) + 32.0; }},
+                {"F", "C", 1.0, [](double value) { return (value - 32.0) * 5.0 / 9.0; }},
+                {"C", "K", 1.0, [](double value) { return value + 273.15; }},
+                {"K", "C", 1.0, [](double value) { return value - 273.15; }}
+        };
+        return table;
     } else {
-        throw std::logic_error("Invalid conversion type");
+        throw std::logic_error("Unsupported conversion type");
     }
 }
+
+template <ConversionType Type>
+double convert(double value, const std::string& from, const std::string& to) {
+    const auto& table = getConversionTable<Type>();
+    for (const auto& conv : table) {
+        if (from == conv.from && to == conv.to) {
+            return conv.convert ? conv.convert(value) : value * conv.factor;
+        }
+    }
+    throw std::invalid_argument("Unsupported conversion, from: " + from + " to: " + to + ". May be next app version will support it.");
+}
+
+
 
 #endif //C_PRO_CONVERTER_H_converter
