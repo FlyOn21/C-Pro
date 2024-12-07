@@ -58,7 +58,7 @@ std::string getValidUnit(const std::vector<std::string>& availableValues, const 
         std::cout << prompt << " (" << [&availableValues]() {
             std::string units;
             for (const auto& u : availableValues) units += u + ", ";
-            return units.substr(0, units.size() - 2); // Remove trailing comma
+            return units.substr(0, units.size() - 2);
         }() << "): ";
         std::cin >> unit;
 
