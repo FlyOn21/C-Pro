@@ -14,13 +14,13 @@ enum class ConversionType { Length, Mass, Temperature };
 
 template <ConversionType Type>
 struct ConversionFactor {
-    const char* from;
-    const char* to;
+    const char* from = nullptr;
+    const char* to = nullptr;
     double factor;
     double (*convert)(double) = nullptr;
 };
 
-std::vector<std::string> getAbleUnits(ConversionType type) {
+std::vector<std::string> getAbleUnits(const ConversionType type) {
     std::vector<std::string> units;
     if (type == ConversionType::Length) {
         units = {"m", "km", "cm"};
