@@ -95,8 +95,7 @@ public:
     }
 
 
-    void analyzeFiles() {
-
+    const void analyzeFiles() {
         try {
             for (const auto& entry : fs::recursive_directory_iterator(path, fs::directory_options::skip_permission_denied)) {
                 if (!fs::is_regular_file(entry)) continue;
@@ -131,7 +130,7 @@ private:
         return analysis.others;
     }
 
-    void printAnalysis() {
+    const void printAnalysis() {
         std::cout << "\nAnalysis of directory: " << path << std::endl
                   << "Text files (.txt): " << analysis.text.count
                   << " (" << formatSize(analysis.text.totalSize) << ")\n"
