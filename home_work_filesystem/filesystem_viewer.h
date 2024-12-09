@@ -142,7 +142,7 @@ private:
                   << " (" << formatSize(analysis.others.totalSize) << ")" << std::endl;
     }
 
-    bool isExecutable(const fs::directory_entry &entry) {
+    const bool isExecutable(const fs::directory_entry &entry) {
         #ifdef _WIN32
             auto ext = entry.path().extension().string();
             return ext == ".exe" || ext == ".bat" || ext == ".cmd";
