@@ -4,8 +4,14 @@
 #include "task_manager.h"
 #include <algorithm>
 
-void TaskManager::addTask(const Task& task) {
-    tasks.push_back(task);
+bool TaskManager::addTask(const Task& task) {
+    try{
+        tasks.push_back(task);
+        return true;
+    }
+    catch (const std::exception& e){
+        return false;
+    }
 }
 
 std::vector<Task> TaskManager::getTasks() const {
@@ -26,17 +32,20 @@ void TaskManager::sortTasks(std::function<bool(const Task&, const Task&)> compar
     std::sort(tasks.begin(), tasks.end(), comparator);
 }
 
-void TaskManager::updateTask(int id, std::function<void(Task&)> updater) {
+bool TaskManager::updateTask(int id, std::function<void(Task&)> updater) {
     for (auto& task : tasks) {
         if (task.getId() == id) {
             updater(task);
-            break;
+            return true;
         }
     }
+    return false;
 }
 
-void TaskManager::removeTask(int id) {
+bool TaskManager::removeTask(int id) {
+    auto original_size = tasks.size();
     tasks.erase(std::remove_if(tasks.begin(), tasks.end(),
                                [id](const Task& task) { return task.getId() == id; }),
                 tasks.end());
+    return tasks.size() < original_size;
 }

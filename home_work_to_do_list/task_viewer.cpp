@@ -37,9 +37,21 @@ std::string TaskView::getInput(const std::string& prompt) const {
 }
 
 int TaskView::getIntegerInput(const std::string& prompt) const {
-    std::cout << prompt;
     int input;
-    std::cin >> input;
-    std::cin.ignore();
-    return input;
+    while (true) {
+        std::cout << prompt;
+        std::cin >> input;
+        if (std::cin.fail()) {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cout << "Invalid input. Please enter a valid integer.\n";
+        } else {
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            return input;
+        }
+    }
+}
+
+void TaskView::displayError(const std::string& error) const {
+    std::cerr << "Error: " << error << "\n";
 }
