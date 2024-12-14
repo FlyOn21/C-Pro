@@ -10,16 +10,19 @@
 std::mutex mtx;
 
 /**
- * This function modifies a CustomSharedPtr<int> object in a thread-safe manner.
+ * Modifies the value pointed to by the given shared pointer within a thread-safe context.
  *
- * Acquires a lock using a std::mutex to ensure only one thread modifies the
- * shared pointer at a time. The function increases the value pointed to by
- * the shared pointer by 10 and logs the modified value to the standard output.
+ * This function increments the value held by the shared pointer by 10.
+ * The operation is protected by a mutex to ensure thread-safe access to
+ * the shared pointer in a concurrent environment.
  *
- * @param sharedPtr A CustomSharedPtr<int> object that points to an integer.
- *                  The integer value will be modified in a thread-safe manner.
+ * @param sharedPtr A reference to a `CustomSharedPtr<int>` pointing to
+ *                  the integer value to be modified.
+ *
+ * @throws std::runtime_error If the shared pointer is null
+ *                            when dereferencing.
  */
-void modifySharedPtr(CustomSharedPtr<int> sharedPtr) {
+void modifySharedPtr(CustomSharedPtr<int>& sharedPtr) {
     std::lock_guard<std::mutex> lock(mtx);
     *sharedPtr = *sharedPtr + 10;
     std::cout << "Thread-modified value: " << *sharedPtr << "\n";
