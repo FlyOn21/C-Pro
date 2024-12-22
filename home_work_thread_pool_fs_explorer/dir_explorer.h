@@ -1,3 +1,4 @@
+#pragma once
 #include <filesystem>
 #include <functional>
 #include <iostream>
@@ -5,56 +6,89 @@
 #include <thread>
 #include <vector>
 #include <atomic>
+#include <queue>
+#include <future>
 #include "thread_pool.h"
 
 namespace fs = std::filesystem;
 
-void exploreDirectory(const fs::path& dir, std::ostream& output, ThreadPool& pool, std::mutex& outputMutex, std::atomic<int>& activeTasks, int depth = 0, std::string prefix = "") {
-    constexpr int MAX_DEPTH = 100;
-    if (depth > MAX_DEPTH) {
-        std::lock_guard<std::mutex> lock(outputMutex);
-        output << prefix << "Maximum depth reached at: " << dir << "\n";
-        return;
+class DirectoryExplorer {
+public:
+    DirectoryExplorer(std::ostream& out, ThreadPool& p,
+                      std::mutex& outMutex, std::atomic<int>& tasks)
+            : output(out), pool(p), outputMutex(outMutex), activeTasks(tasks) {}
+
+    void explore(const fs::path& root) {
+        processDirectory(root, "");
     }
 
-    std::vector<fs::directory_entry> entries;
-    try {
-        for (const auto& entry : fs::directory_iterator(dir)) {
-            entries.push_back(entry);
+private:
+    void processDirectory(const fs::path& dir, const std::string& prefix) {
+        std::vector<fs::directory_entry> files;
+        std::vector<fs::directory_entry> directories;
+
+        // First, collect and sort all entries
+        try {
+            for (const auto& entry : fs::directory_iterator(dir)) {
+                if (entry.is_directory()) {
+                    directories.push_back(entry);
+                } else {
+                    files.push_back(entry);
+                }
+            }
+        } catch (const std::exception& e) {
+            std::lock_guard<std::mutex> lock(outputMutex);
+            output << prefix << "Error accessing directory: " << dir << " - " << e.what() << "\n";
+            return;
         }
-    } catch (const std::exception& e) {
-        std::lock_guard<std::mutex> lock(outputMutex);
-        output << prefix << "Error accessing directory: " << dir << " - " << e.what() << "\n";
-        return;
-    }
 
-    {
-        std::lock_guard<std::mutex> lock(outputMutex);
-        if (depth > 0) {
-            output << prefix << dir.filename() << "/\n";
-        }
-    }
+        // Sort directories and files separately
+        auto sortByName = [](const fs::directory_entry& a, const fs::directory_entry& b) {
+            return a.path().filename() < b.path().filename();
+        };
+        std::sort(directories.begin(), directories.end(), sortByName);
+        std::sort(files.begin(), files.end(), sortByName);
 
-    for (size_t i = 0; i < entries.size(); ++i) {
-        const auto& entry = entries[i];
-        bool isLastEntry = (i == entries.size() - 1);
+        // Process directories first
+        for (size_t i = 0; i < directories.size(); ++i) {
+            const auto& entry = directories[i];
+            bool isLastDir = (i == directories.size() - 1) && files.empty();
+            std::string entryPrefix = prefix + (isLastDir ? "└── " : "├── ");
+            std::string nextPrefix = prefix + (isLastDir ? "    " : "│   ");
 
-        std::string entryPrefix = prefix + (isLastEntry ? "└── " : "├── ");
-        std::string childPrefix = prefix + "    ";
-
-        if (entry.is_directory()) {
-            activeTasks++;
-            pool.enqueue([entry, &output, &pool, &outputMutex, &activeTasks, depth, childPrefix]() {
-                exploreDirectory(entry.path(), output, pool, outputMutex, activeTasks, depth + 1, childPrefix);
-                activeTasks--;
-            });
-        } else {
+            // Print directory name
             {
                 std::lock_guard<std::mutex> lock(outputMutex);
-                output << entryPrefix << entry.path().filename() << "\n";
+                output << entryPrefix << entry.path().filename().string() << "/\n";
+            }
+
+            // Recursively process directory contents with updated prefix
+            processDirectory(entry.path(), nextPrefix);
+        }
+
+        // Then process files
+        for (size_t i = 0; i < files.size(); ++i) {
+            const auto& entry = files[i];
+            bool isLastEntry = (i == files.size() - 1);
+            std::string entryPrefix = prefix + (isLastEntry ? "└── " : "├── ");
+
+            {
+                std::lock_guard<std::mutex> lock(outputMutex);
+                output << entryPrefix << entry.path().filename().string() << "\n";
             }
         }
     }
 
-    activeTasks--;
+    std::mutex& outputMutex;
+    std::ostream& output;
+    ThreadPool& pool;
+    std::atomic<int>& activeTasks;
+    static constexpr int MAX_DEPTH = 100;
+};
+
+void exploreDirectory(const fs::path& dir, std::ostream& output,
+                      ThreadPool& pool, std::mutex& outputMutex,
+                      std::atomic<int>& activeTasks) {
+    DirectoryExplorer explorer(output, pool, outputMutex, activeTasks);
+    explorer.explore(dir);
 }

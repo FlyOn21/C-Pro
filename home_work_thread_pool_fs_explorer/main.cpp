@@ -18,18 +18,12 @@ int main() {
     std::atomic<int> activeTasks(0);
     ThreadPool pool(std::thread::hardware_concurrency());
 
-    output << "Starting directory traversal...\n";
     {
         std::lock_guard<std::mutex> lock(outputMutex);
-        output << root.filename() << "/\n";
+        output << root.filename().string() << "/\n";
     }
 
-    activeTasks++;
     exploreDirectory(root, output, pool, outputMutex, activeTasks);
-
-    while (activeTasks > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
 
     {
         std::lock_guard<std::mutex> lock(outputMutex);

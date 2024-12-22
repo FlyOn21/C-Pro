@@ -1,15 +1,12 @@
+#pragma once
 #include <filesystem>
 #include <functional>
 #include <thread>
 #include <vector>
-#include <iostream>
 #include <queue>
 #include <condition_variable>
 #include <mutex>
-#include <optional>
-#include <chrono>
-
-namespace fs = std::filesystem;
+#include <future>
 
 class ThreadPool {
 public:
@@ -18,7 +15,6 @@ public:
             workers.emplace_back([this]() {
                 while (true) {
                     std::function<void()> task;
-
                     {
                         std::unique_lock<std::mutex> lock(queueMutex);
                         condition.wait(lock, [this]() { return !tasks.empty() || stop; });
@@ -29,7 +25,6 @@ public:
                         task = std::move(tasks.front());
                         tasks.pop();
                     }
-
                     task();
                 }
             });
@@ -41,20 +36,31 @@ public:
             std::unique_lock<std::mutex> lock(queueMutex);
             stop = true;
         }
-
         condition.notify_all();
-
-        for (std::thread &worker : workers)
+        for (std::thread &worker : workers) {
             worker.join();
+        }
     }
 
-    template <typename F>
-    void enqueue(F&& task) {
+    template<class F, class... Args>
+    auto enqueue(F&& f, Args&&... args)
+    -> std::future<typename std::invoke_result<F, Args...>::type> {
+        using return_type = typename std::invoke_result<F, Args...>::type;
+
+        auto task = std::make_shared<std::packaged_task<return_type()>>(
+                std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+        );
+
+        std::future<return_type> res = task->get_future();
         {
             std::unique_lock<std::mutex> lock(queueMutex);
-            tasks.emplace(std::forward<F>(task));
+            if (stop) {
+                throw std::runtime_error("enqueue on stopped ThreadPool");
+            }
+            tasks.emplace([task]() { (*task)(); });
         }
         condition.notify_one();
+        return res;
     }
 
 private:
