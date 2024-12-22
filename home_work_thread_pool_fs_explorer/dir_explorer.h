@@ -58,7 +58,6 @@ private:
                 }
 
                 if (entry.is_directory()) {
-                    // Запускаем обработку содержимого директории
                     processSubDirectory(entry.path(), isLast ? "    " : "│   ").wait();
                 }
             }
