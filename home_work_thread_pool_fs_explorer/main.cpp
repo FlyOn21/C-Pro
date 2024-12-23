@@ -24,6 +24,9 @@ int main() {
     }
 
     exploreDirectory(root, output, pool, outputMutex, activeTasks);
+    while (activeTasks > 0) {
+        std::this_thread::yield();
+    }
 
     {
         std::lock_guard<std::mutex> lock(outputMutex);

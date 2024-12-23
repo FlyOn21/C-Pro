@@ -65,8 +65,8 @@ private:
     }
 
     std::future<void> processSubDirectory(const fs::path& dir, const std::string& parentPrefix) {
+        activeTasks++;
         return pool.enqueue([this, dir, parentPrefix]() {
-            activeTasks++;
             std::vector<fs::directory_entry> entries;
 
             try {
