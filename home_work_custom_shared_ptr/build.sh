@@ -13,5 +13,5 @@ cd "$BUILD_DIR"
 
 cmake ..
 cmake --build .
-./CustomSharedPTR
+./CustomSharedPTRExample
 
