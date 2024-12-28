@@ -44,4 +44,4 @@ install(FILES include/custom_shared_ptr.hpp
         DESTINATION include
 )
 add_executable(CustomSharedPTRExample src/main.cpp)
-target_link_libraries(CustomSharedPTRExample PRIVATE CustomSharedPTR)
+target_link_libraries(CustomSharedPTRExample PRIVATE CustomSharedPTR_shared)

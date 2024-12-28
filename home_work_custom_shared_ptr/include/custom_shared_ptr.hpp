@@ -14,91 +14,28 @@ namespace custom_shared_ptr {
     private:
         T* ptrData;
         std::atomic<int>* ptrCounter;
-
-        void release() {
-            if (ptrCounter) {
-                if (ptrCounter->fetch_sub(1) == 1) {
-                    delete ptrData;
-                    delete ptrCounter;
-                    ptrData = nullptr;
-                    ptrCounter = nullptr;
-                }
-            }
-        }
+        void release();
 
     public:
+        explicit CustomSharedPtr(T* value = nullptr);
+        CustomSharedPtr(const CustomSharedPtr<T>& other);
+        CustomSharedPtr(CustomSharedPtr<T>&& other) noexcept;
+        CustomSharedPtr<T>& operator=(const CustomSharedPtr<T>& other);
+        CustomSharedPtr<T>& operator=(CustomSharedPtr<T>&& other) noexcept;
 
-        explicit CustomSharedPtr(T* value = nullptr)
-                : ptrData(value), ptrCounter(value ? new std::atomic<int>(1) : nullptr) {}
+        T& operator*() const;
+        T* operator->() const;
+        ~CustomSharedPtr();
 
-        CustomSharedPtr(const CustomSharedPtr<T>& other)
-                : ptrData(other.ptrData), ptrCounter(other.ptrCounter) {
-            if (ptrCounter) {
-                ptrCounter->fetch_add(1);
-            }
-        }
-
-        CustomSharedPtr(CustomSharedPtr<T>&& other) noexcept
-                : ptrData(other.ptrData), ptrCounter(other.ptrCounter) {
-            other.ptrData = nullptr;
-            other.ptrCounter = nullptr;
-        }
-
-        CustomSharedPtr<T>& operator=(const CustomSharedPtr<T>& other) {
-            if (this != &other) {
-                release();
-                ptrData = other.ptrData;
-                ptrCounter = other.ptrCounter;
-                if (ptrCounter) {
-                    ptrCounter->fetch_add(1);
-                }
-            }
-            return *this;
-        }
-
-        CustomSharedPtr<T>& operator=(CustomSharedPtr<T>&& other) noexcept {
-            if (this != &other) {
-                release();
-                ptrData = other.ptrData;
-                ptrCounter = other.ptrCounter;
-                other.ptrData = nullptr;
-                other.ptrCounter = nullptr;
-            }
-            return *this;
-        }
-
-        T& operator*() const {
-            if (!ptrData) {
-                throw std::runtime_error("Dereferencing null pointer");
-            }
-            return *ptrData;
-        }
-
-        T* operator->() const {
-            if (!ptrData) {
-                throw std::runtime_error("Accessing null pointer");
-            }
-            return ptrData;
-        }
-
-        ~CustomSharedPtr() {
-            release();
-        }
-
-        int use_count() const {
-            return ptrCounter ? ptrCounter->load() : 0;
-        }
-
-        bool operator==(const CustomSharedPtr<T>& other) const {
-            return ptrData == other.ptrData;
-        }
+        int use_count() const;
+        bool operator==(const CustomSharedPtr<T>& other) const;
 
         struct Hash {
-            size_t operator()(const CustomSharedPtr<T>& ptr) const {
-                return std::hash<T*>()(ptr.ptrData);
-            }
+            size_t operator()(const CustomSharedPtr<T>& ptr) const;
         };
     };
+
+    const char* getVersion();
 }
 
 

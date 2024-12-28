@@ -49,6 +49,7 @@ void modifySharedPtr(custom_shared_ptr::CustomSharedPtr<int>& sharedPtr) {
  *   that concurrently modify the managed object via `modifySharedPtr`.
  */
 int main() {
+    std::cout << "Custom Shared Pointer Version: " << custom_shared_ptr::getVersion() << std::endl;
     custom_shared_ptr::CustomSharedPtr<int> ptr1(new int(42));
     std::cout << "ptr1 count: " << ptr1.use_count() << std::endl;
     custom_shared_ptr::CustomSharedPtr<int> ptr2 (new int(56));
