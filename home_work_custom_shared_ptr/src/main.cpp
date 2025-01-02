@@ -1,7 +1,7 @@
 //
-// Created by flyon21 on 21.11.24.
+// Created by flyon21 on 26.12.24.
 //
-#include "custom_shared_ptr.h"
+#include "../include/custom_shared_ptr.hpp"
 #include <unordered_set>
 #include <thread>
 #include <mutex>
@@ -22,7 +22,7 @@ std::mutex mtx;
  * @throws std::runtime_error If the shared pointer is null
  *                            when dereferencing.
  */
-void modifySharedPtr(CustomSharedPtr<int>& sharedPtr) {
+void modifySharedPtr(custom_shared_ptr::CustomSharedPtr<int>& sharedPtr) {
     std::lock_guard<std::mutex> lock(mtx);
     *sharedPtr = *sharedPtr + 10;
     std::cout << "Thread-modified value: " << *sharedPtr << "\n";
@@ -49,12 +49,13 @@ void modifySharedPtr(CustomSharedPtr<int>& sharedPtr) {
  *   that concurrently modify the managed object via `modifySharedPtr`.
  */
 int main() {
-    CustomSharedPtr<int> ptr1(new int(42));
+    std::cout << "Custom Shared Pointer Version: " << custom_shared_ptr::getVersion() << std::endl;
+    custom_shared_ptr::CustomSharedPtr<int> ptr1(new int(42));
     std::cout << "ptr1 count: " << ptr1.use_count() << std::endl;
-    CustomSharedPtr<int> ptr2 (new int(56));
+    custom_shared_ptr::CustomSharedPtr<int> ptr2 (new int(56));
 
     {
-        CustomSharedPtr<int> ptr3 = ptr1;
+        custom_shared_ptr::CustomSharedPtr<int> ptr3 = ptr1;
         std::cout << "ptr2 count: " << ptr3.use_count() << std::endl;
 
         *ptr3 = 100;
@@ -62,7 +63,7 @@ int main() {
         std::cout << "ptr3 == ptr1: " << (ptr3 == ptr1) << std::endl;
     }
     std::cout << "ptr2 == ptr1: " << (ptr2 == ptr1) << std::endl;
-    std::unordered_set<CustomSharedPtr<int>, CustomSharedPtr<int>::Hash> set_ptr;
+    std::unordered_set<custom_shared_ptr::CustomSharedPtr<int>, custom_shared_ptr::CustomSharedPtr<int>::Hash> set_ptr;
     set_ptr.insert(ptr1);
     set_ptr.insert(ptr2);
 
@@ -73,7 +74,7 @@ int main() {
 
     std::cout << "After ptr2 out of scope: " << ptr1.use_count() << std::endl;
 
-    CustomSharedPtr<int> ptr4 = std::move(ptr1);
+    custom_shared_ptr::CustomSharedPtr<int> ptr4 = std::move(ptr1);
     std::cout << "After move, ptr4 count: " << ptr4.use_count() << std::endl;
 
     // Test for threads
@@ -82,7 +83,7 @@ int main() {
     std::vector<std::thread> threads;
 
     for (int i = 0; i < 5; ++i) {
-        threads.emplace_back(modifySharedPtr, ptr4);
+        threads.emplace_back(modifySharedPtr, std::ref(ptr4));
     }
 
     for (auto& thread : threads) {

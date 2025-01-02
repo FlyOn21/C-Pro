@@ -1,21 +1,15 @@
 //
-// Created by flyon21 on 21.11.24.
+// Created by flyon21 on 26.12.24.
 //
+#include "../include/custom_shared_ptr.hpp"
 
-#ifndef C_PRO_CUSTOM_SHARED_PTR_H_custom_shared_ptr
-#define C_PRO_CUSTOM_SHARED_PTR_H_custom_shared_ptr
+namespace custom_shared_ptr {
+    const char* getVersion() {
+        return "0.1.0";
+    }
 
-#include <iostream>
-#include <atomic>
-#include <stdexcept>
-
-template <typename T>
-class CustomSharedPtr {
-private:
-    T* ptrData;
-    std::atomic<int>* ptrCounter;
-
-    void release() {
+    template <typename T>
+    void CustomSharedPtr<T>::release() {
         if (ptrCounter) {
             if (ptrCounter->fetch_sub(1) == 1) {
                 delete ptrData;
@@ -26,25 +20,27 @@ private:
         }
     }
 
-public:
-
-    explicit CustomSharedPtr(T* value = nullptr)
+    template <typename T>
+    CustomSharedPtr<T>::CustomSharedPtr(T* value)
             : ptrData(value), ptrCounter(value ? new std::atomic<int>(1) : nullptr) {}
 
-    CustomSharedPtr(const CustomSharedPtr<T>& other)
+    template <typename T>
+    CustomSharedPtr<T>::CustomSharedPtr(const CustomSharedPtr<T>& other)
             : ptrData(other.ptrData), ptrCounter(other.ptrCounter) {
         if (ptrCounter) {
             ptrCounter->fetch_add(1);
         }
     }
 
-    CustomSharedPtr(CustomSharedPtr<T>&& other) noexcept
+    template <typename T>
+    CustomSharedPtr<T>::CustomSharedPtr(CustomSharedPtr<T>&& other) noexcept
             : ptrData(other.ptrData), ptrCounter(other.ptrCounter) {
         other.ptrData = nullptr;
         other.ptrCounter = nullptr;
     }
 
-    CustomSharedPtr<T>& operator=(const CustomSharedPtr<T>& other) {
+    template <typename T>
+    CustomSharedPtr<T>& CustomSharedPtr<T>::operator=(const CustomSharedPtr<T>& other) {
         if (this != &other) {
             release();
             ptrData = other.ptrData;
@@ -56,7 +52,8 @@ public:
         return *this;
     }
 
-    CustomSharedPtr<T>& operator=(CustomSharedPtr<T>&& other) noexcept {
+    template <typename T>
+    CustomSharedPtr<T>& CustomSharedPtr<T>::operator=(CustomSharedPtr<T>&& other) noexcept {
         if (this != &other) {
             release();
             ptrData = other.ptrData;
@@ -67,37 +64,39 @@ public:
         return *this;
     }
 
-    T& operator*() const {
+    template <typename T>
+    T& CustomSharedPtr<T>::operator*() const {
         if (!ptrData) {
             throw std::runtime_error("Dereferencing null pointer");
         }
         return *ptrData;
     }
 
-    T* operator->() const {
+    template <typename T>
+    T* CustomSharedPtr<T>::operator->() const {
         if (!ptrData) {
             throw std::runtime_error("Accessing null pointer");
         }
         return ptrData;
     }
 
-    ~CustomSharedPtr() {
+    template <typename T>
+    CustomSharedPtr<T>::~CustomSharedPtr() {
         release();
     }
 
-    int use_count() const {
+    template <typename T>
+    int CustomSharedPtr<T>::use_count() const {
         return ptrCounter ? ptrCounter->load() : 0;
     }
 
-    bool operator==(const CustomSharedPtr<T>& other) const {
+    template <typename T>
+    bool CustomSharedPtr<T>::operator==(const CustomSharedPtr<T>& other) const {
         return ptrData == other.ptrData;
     }
 
-    struct Hash {
-        size_t operator()(const CustomSharedPtr<T>& ptr) const {
-            return std::hash<T*>()(ptr.ptrData);
-        }
-    };
-};
-
-#endif //C_PRO_CUSTOM_SHARED_PTR_H_custom_shared_ptr
+    template <typename T>
+    size_t CustomSharedPtr<T>::Hash::operator()(const CustomSharedPtr<T>& ptr) const {
+        return std::hash<T*>()(ptr.ptrData);
+    }
+}
