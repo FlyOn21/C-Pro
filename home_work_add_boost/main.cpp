@@ -78,21 +78,21 @@ void execute_command(Command command) {
     switch (command) {
         case Command::CPU:
             print_cpu_info();
-        break;
+            break;
         case Command::MEMORY:
             print_memory_info();
-        break;
+            break;
         case Command::OS:
             print_os_info();
-        break;
+            break;
         case Command::ALL:
             print_cpu_info();
-        print_memory_info();
-        print_os_info();
-        break;
+            print_memory_info();
+            print_os_info();
+            break;
         default:
             std::cerr << "Error: Unknown command.\n"; // Handle unknown cases here.
-        break;
+            break;
     }
 }
 
