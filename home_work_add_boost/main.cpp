@@ -37,7 +37,7 @@ void print_memory_info() {
 }
 
 void print_os_info() {
-    struct utsname buffer;
+    utsname buffer;
     if (uname(&buffer) == 0) {
         std::cout << "Operating System: " << buffer.sysname << "\n";
         std::cout << "Node Name: " << buffer.nodename << "\n";
@@ -64,56 +64,68 @@ Command get_command(const std::string& command_str) {
     return Command::UNKNOWN;
 }
 
+constexpr auto COMMAND_DESCRIPTIONS = R"(
+System Info Utility
+Usage:
+  --help, -h     Print help message
+  --cpu          Display CPU information
+  --memory       Display memory information
+  --os           Display OS information
+  --all          Display all available system information
+)";
+
+void execute_command(Command command) {
+    switch (command) {
+        case Command::CPU:
+            print_cpu_info();
+        break;
+        case Command::MEMORY:
+            print_memory_info();
+        break;
+        case Command::OS:
+            print_os_info();
+        break;
+        case Command::ALL:
+            print_cpu_info();
+        print_memory_info();
+        print_os_info();
+        break;
+        default:
+            std::cerr << "Error: Unknown command.\n"; // Handle unknown cases here.
+        break;
+    }
+}
+
+
 int main(int argc, char* argv[]) {
     try {
+        boost::program_options::options_description options_desc("Allowed options");
+        options_desc.add_options()
+            ("help,h", "Print help message")
+            ("cpu", "Display CPU information")
+            ("memory", "Display memory information")
+            ("os", "Display OS information")
+            ("all", "Display all available system information");
 
-        boost::program_options::options_description desc("Allowed options");
-        desc.add_options()
-                ("help,h", "Print help message")
-                ("cpu", "Display CPU information")
-                ("memory", "Display memory information")
-                ("os", "Display OS information")
-                ("all", "Display all available system information");
-
-        boost::program_options::variables_map vm;
+        boost::program_options::variables_map options_map;
         boost::program_options::store(
-                boost::program_options::parse_command_line(argc, argv, desc), vm);
-        boost::program_options::notify(vm);
+            boost::program_options::parse_command_line(argc, argv, options_desc), options_map);
+        boost::program_options::notify(options_map);
 
-        if (vm.count("help")) {
-            print_help(desc);
+        if (options_map.count("help")) {
+            print_help(options_desc);
             return 0;
         }
 
-        for (const auto& option : vm) {
-            Command command = get_command(option.first);
-
-            switch (command) {
-                case Command::CPU:
-                    print_cpu_info();
-                    break;
-                case Command::MEMORY:
-                    print_memory_info();
-                    break;
-                case Command::OS:
-                    print_os_info();
-                    break;
-                case Command::ALL:
-                    print_cpu_info();
-                    print_memory_info();
-                    print_os_info();
-                    break;
-                case Command::UNKNOWN:
-                default:
-                    std::cout << "Unknown option: " << option.first << "\n";
-                    break;
-            }
-        }
-
-        if (vm.empty()) {
+        if (options_map.empty()) {
             std::cout << "No options provided. Use --help to see available options.\n";
+            return 0;
         }
 
+        for (const auto& option : options_map) {
+            Command command = get_command(option.first);
+            execute_command(command);
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;
