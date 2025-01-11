@@ -91,7 +91,12 @@ void execute_command(Command command) {
             print_os_info();
             break;
         default:
-            std::cerr << "Error: Unknown command.\n"; // Handle unknown cases here.
+            std::cerr << "Error: Unknown command.\n"
+                      << "Valid commands are:\n"
+                      << "  cpu  - Display CPU information\n"
+                      << "  os   - Display operating system information\n"
+                      << "  all  - Display all system information\n"
+                      << "Please try again with one of these commands.\n";
             break;
     }
 }
