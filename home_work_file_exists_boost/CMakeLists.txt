@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/../external/boost")
 
-set(BOOST_INCLUDE_LIBRARIES program_options file_system)
+set(BOOST_INCLUDE_LIBRARIES program_options filesystem)
 set(BOOST_ENABLE_CMAKE ON)
 add_subdirectory(${BOOST_ROOT} "${CMAKE_BINARY_DIR}/boost-build" EXCLUDE_FROM_ALL)
 

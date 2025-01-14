@@ -85,13 +85,6 @@ std::string human_readable_permissions(fs::perms p) {
 }
 
 void execute_command(Command command, const fs::path& file, const boost::optional<SizeValue>& size_value = boost::none) {
-    if (fs::is_directory(file)) {
-        throw std::runtime_error("Directory path not allowed: " + file.string());
-    }
-    if (!fs::exists(file)) {
-        throw std::runtime_error("File does not exist: " + file.string());
-    }
-
     switch (command) {
         case Command::SIZE: {
             auto file_size = fs::file_size(file);
@@ -146,6 +139,13 @@ int print_file_info(const fs::path& file_path, const po::variables_map& options_
     std::cout << "------------------------------------------------------\n";
     std::cout << "File: " << file_path << "\n";
     std::cout << "------------------------------------------------------\n";
+
+    if (fs::is_directory(file_path)) {
+        throw std::runtime_error("Directory path not allowed: " + file_path.string());
+    }
+    if (!fs::exists(file_path)) {
+        throw std::runtime_error("File does not exist: " + file_path.string());
+    }
 
     boost::optional<SizeValue> size_value;
     if (options_map.count("size")) {
