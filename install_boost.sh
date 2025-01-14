@@ -26,7 +26,7 @@ cd ./external/boost
 chmod +x ./bootstrap.sh
 ./bootstrap.sh
 ./b2 headers
-./b2 --with-program_options stage -j4
+./b2 --with-program_options --with-filesystem stage -j4
 if $INSTALL; then
     echo "Installing Boost to $INSTALL_DIR..."
     ./b2 install --prefix="$INSTALL_DIR"
