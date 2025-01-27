@@ -19,7 +19,11 @@ std::mutex clients_mutex;
 void broadcast_message(const std::string& message) {
     std::lock_guard<std::mutex> lock(clients_mutex);
     for (const auto& client : clients) {
-        boost::asio::write(*client, boost::asio::buffer(message + "\n"));
+        try {
+            boost::asio::write(*client, boost::asio::buffer(message + "\n"));
+        } catch (const std::exception& e) {
+            std::cerr << "Error broadcasting message: " << e.what() << std::endl;
+        }
     }
 }
 
@@ -27,18 +31,33 @@ void handle_client(std::shared_ptr<ssl::stream<tcp::socket>> ssl_socket) {
     try {
         char buffer[1024];
         while (true) {
-            size_t bytes_read = ssl_socket->read_some(boost::asio::buffer(buffer));
+            boost::system::error_code ec;
+            size_t bytes_read = ssl_socket->read_some(boost::asio::buffer(buffer), ec);
+
+            if (ec == boost::asio::error::eof || ec == boost::asio::error::connection_reset) {
+                std::cerr << "Client disconnected." << std::endl;
+                break;
+            } else if (ec) {
+                std::cerr << "Error reading from client: " << ec.message() << std::endl;
+                break;
+            }
+
             std::string message(buffer, bytes_read);
             std::cout << "Client says: " << message << std::endl;
 
-            broadcast_message(message);
+            boost::asio::write(*ssl_socket, boost::asio::buffer("Echo: " + message + "\n"));
+
+            broadcast_message("Broadcast from server: " + message);
         }
-    } catch (std::exception& e) {
-        std::cerr << "Client disconnected: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Client handling exception: " << e.what() << std::endl;
     }
 
-    std::lock_guard<std::mutex> lock(clients_mutex);
-    clients.erase(ssl_socket);
+    {
+        std::lock_guard<std::mutex> lock(clients_mutex);
+        clients.erase(ssl_socket);
+        std::cout << "A client has disconnected. Total connected clients: " << clients.size() << std::endl;
+    }
 }
 
 void start_ssl_server(unsigned short port) {
@@ -59,17 +78,23 @@ void start_ssl_server(unsigned short port) {
             acceptor.accept(*socket);
 
             auto ssl_socket = std::make_shared<ssl::stream<tcp::socket>>(std::move(*socket), ssl_context);
-            ssl_socket->handshake(ssl::stream_base::server);
 
-            {
-                std::lock_guard<std::mutex> lock(clients_mutex);
-                clients.insert(ssl_socket);
+            try {
+                ssl_socket->handshake(ssl::stream_base::server);
+
+                {
+                    std::lock_guard<std::mutex> lock(clients_mutex);
+                    clients.insert(ssl_socket);
+                    std::cout << "New client connected. Total connected clients: " << clients.size() << std::endl;
+                }
+
+                std::thread(handle_client, ssl_socket).detach();
+            } catch (const std::exception& e) {
+                std::cerr << "SSL handshake failed: " << e.what() << std::endl;
             }
-
-            std::thread(handle_client, ssl_socket).detach();
         }
-    } catch (std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Server exception: " << e.what() << std::endl;
     }
 }
 

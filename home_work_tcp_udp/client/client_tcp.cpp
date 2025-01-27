@@ -43,9 +43,9 @@ void start_ssl_client(const std::string& host, unsigned short port) {
                 try {
                     boost::asio::write(ssl_socket, boost::asio::buffer(message + "\n"));
 
-                    std::vector<char> buffer(1024);
+                    boost::asio::streambuf buffer;
                     boost::system::error_code ec;
-                    size_t bytes_read = ssl_socket.read_some(boost::asio::buffer(buffer), ec);
+                    boost::asio::read_until(ssl_socket, buffer, '\n', ec);
 
                     if (ec == boost::asio::error::eof || ec == boost::asio::error::connection_reset) {
                         std::cerr << "Server disconnected." << std::endl;
@@ -55,7 +55,9 @@ void start_ssl_client(const std::string& host, unsigned short port) {
                         break;
                     }
 
-                    std::string reply(buffer.data(), bytes_read);
+                    std::istream stream(&buffer);
+                    std::string reply;
+                    std::getline(stream, reply);
                     cleanup_message(reply);
                     std::cout << "Server replied: " << reply << std::endl;
                 } catch (const std::exception& e) {
@@ -65,7 +67,8 @@ void start_ssl_client(const std::string& host, unsigned short port) {
             }
         }
 
-        ssl_socket.lowest_layer().close();
+        ssl_socket.lowest_layer().shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+		ssl_socket.lowest_layer().close();
     } catch (const std::exception& e) {
         std::cerr << "Connection error: " << e.what() << std::endl;
     }
